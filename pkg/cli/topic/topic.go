@@ -16,6 +16,7 @@ func NewCommand(r *config.RocketMQConfig) *cobra.Command {
 		Create(r),
 		Produce(r),
 		List(r),
+		Describe(r),
 	)
 	return cmd
 }
