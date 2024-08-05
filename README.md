@@ -7,6 +7,7 @@ a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, e
 
 - topic
     - [x] create
+    - [x] list
     - [x] produce
     - [ ] delete
     - [ ] update
@@ -26,6 +27,12 @@ NamesrvAddrs: 127.0.0.1:9876
 
 ```shell
 rmq topic create -t TopicTest -b 127.0.0.1:10911
+```
+
+* List all topics:
+
+```shell
+rmq topic list
 ```
 
 * Produce a message:
