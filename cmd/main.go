@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/echooymxq/rmq/pkg/cli/broker"
 	"github.com/echooymxq/rmq/pkg/cli/group"
 	"github.com/echooymxq/rmq/pkg/cli/message"
 	"github.com/echooymxq/rmq/pkg/cli/topic"
@@ -21,6 +22,7 @@ func main() {
 	root.AddCommand(topic.NewCommand(r))
 	root.AddCommand(group.NewCommand(r))
 	root.AddCommand(message.NewCommand(r))
+	root.AddCommand(broker.NewCommand(r))
 
 	err := root.Execute()
 	if err != nil {
