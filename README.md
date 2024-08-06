@@ -14,6 +14,7 @@ a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, e
     - [ ] update
 - group
     - [x] create
+    - [x] consume
 
 ## How to use
 
@@ -53,4 +54,10 @@ rmq topic produce -t TopicTest
 
 ```shell
 rmq group create -g GroupTest
+```
+
+* Consume a message:
+
+```shell
+rmq group consume -g GID_Test -t TopicTest
 ```

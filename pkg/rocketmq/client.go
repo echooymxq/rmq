@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/admin"
+	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/apache/rocketmq-client-go/v2/producer"
 	"github.com/echooymxq/rmq/pkg/config"
@@ -31,6 +32,18 @@ func NewProducer(r *config.RocketMQConfig, group string) (rocketmq.Producer, err
 			Resolver: primitive.NewPassthroughResolver(namesrv),
 		}),
 		producer.WithCredentials(primitive.Credentials{
+			AccessKey: accessKey,
+			SecretKey: secretKey,
+		}),
+	)
+}
+
+func NewPushConsumer(r *config.RocketMQConfig, group string) (rocketmq.PushConsumer, error) {
+	namesrv, accessKey, secretKey := r.GetNamesrvAddrs(), r.AccessKey, r.SecretKey
+	return rocketmq.NewPushConsumer(
+		consumer.WithGroupName(group),
+		consumer.WithNsResolver(primitive.NewPassthroughResolver(namesrv)),
+		consumer.WithCredentials(primitive.Credentials{
 			AccessKey: accessKey,
 			SecretKey: secretKey,
 		}),
