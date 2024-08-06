@@ -2,7 +2,7 @@ module github.com/echooymxq/rmq
 
 go 1.19
 
-replace github.com/apache/rocketmq-client-go/v2 => github.com/echooymxq/rocketmq-client-go/v2 v2.0.0-20240805065454-d7c5a07fc441
+replace github.com/apache/rocketmq-client-go/v2 => github.com/echooymxq/rocketmq-client-go/v2 v2.0.0-20240806013034-4d83f52cb097
 
 require (
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
@@ -33,7 +33,7 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	stathat.com/c/consistent v1.0.0 // indirect
