@@ -15,8 +15,13 @@ a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, e
 - group
     - [x] create
     - [x] list
+    - [ ] delete
+    - [ ] update
+    - [ ] resetOffset
     - [x] describe
     - [x] consume
+- message
+    - [x] query
 
 ## How to use
 

@@ -2,7 +2,7 @@ module github.com/echooymxq/rmq
 
 go 1.19
 
-replace github.com/apache/rocketmq-client-go/v2 => github.com/echooymxq/rocketmq-client-go/v2 v2.0.0-20240806013034-4d83f52cb097
+replace github.com/apache/rocketmq-client-go/v2 => github.com/echooymxq/rocketmq-client-go/v2 v2.0.0-20240806014533-987809dfdd9c
 
 require (
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
