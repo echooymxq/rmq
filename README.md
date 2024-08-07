@@ -6,6 +6,7 @@ a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, e
 ## Features
 - broker
     - [x] list
+    - [x] config
 - topic
     - [x] create
     - [x] list

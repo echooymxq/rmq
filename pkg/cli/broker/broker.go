@@ -13,6 +13,7 @@ func NewCommand(r *config.RocketMQConfig) *cobra.Command {
 	r.InstallRocketMQFlags(cmd)
 	cmd.AddCommand(
 		List(r),
+		Config(r),
 	)
 	return cmd
 }
