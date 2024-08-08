@@ -4,9 +4,7 @@ a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, e
 
 
 ## Features
-- broker
-    - [x] list
-    - [x] config
+
 - topic
     - [x] create
     - [x] list
@@ -24,6 +22,11 @@ a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, e
     - [x] consume
 - message
     - [x] query
+- namesrv
+  - [x] config
+- broker
+  - [x] list
+  - [x] config
 
 ## How to use
 

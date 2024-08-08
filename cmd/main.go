@@ -4,6 +4,7 @@ import (
 	"github.com/echooymxq/rmq/pkg/cli/broker"
 	"github.com/echooymxq/rmq/pkg/cli/group"
 	"github.com/echooymxq/rmq/pkg/cli/message"
+	"github.com/echooymxq/rmq/pkg/cli/namesrv"
 	"github.com/echooymxq/rmq/pkg/cli/topic"
 	"github.com/echooymxq/rmq/pkg/config"
 	"github.com/spf13/cobra"
@@ -22,6 +23,7 @@ func main() {
 	root.AddCommand(topic.NewCommand(r))
 	root.AddCommand(group.NewCommand(r))
 	root.AddCommand(message.NewCommand(r))
+	root.AddCommand(namesrv.NewCommand(r))
 	root.AddCommand(broker.NewCommand(r))
 
 	err := root.Execute()
