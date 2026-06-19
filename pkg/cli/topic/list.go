@@ -13,12 +13,15 @@ import (
 func List(r *config.RocketMQConfig) *cobra.Command {
 	var cmd = &cobra.Command{
 		Use: "list",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			admin, err := rocketmq.NewAdminClient(r)
+			if err != nil {
+				return err
+			}
 			defer rocketmq.Close(admin)
 			result, err := admin.FetchAllTopicList(context.Background())
 			if err != nil {
-				fmt.Println("FetchAllTopicList error:", err.Error())
+				return fmt.Errorf("fetch all topic list: %w", err)
 			}
 			table := tablewriter.NewWriter(os.Stdout)
 			table.SetHeader([]string{"Name"})
@@ -27,6 +30,7 @@ func List(r *config.RocketMQConfig) *cobra.Command {
 				table.Append([]string{topic})
 			}
 			table.Render()
+			return nil
 		},
 	}
 	return cmd

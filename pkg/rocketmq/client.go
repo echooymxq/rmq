@@ -2,6 +2,7 @@ package rocketmq
 
 import (
 	"fmt"
+
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/admin"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
@@ -12,13 +13,17 @@ import (
 
 func NewAdminClient(r *config.RocketMQConfig) (admin.Admin, error) {
 	namesrv, accessKey, secretKey := r.GetNamesrvAddrs(), r.AccessKey, r.SecretKey
-	return admin.NewAdmin(
+	client, err := admin.NewAdmin(
 		admin.WithResolver(primitive.NewPassthroughResolver(namesrv)),
 		admin.WithCredentials(primitive.Credentials{
 			AccessKey: accessKey,
 			SecretKey: secretKey,
 		}),
 	)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func NewProducer(r *config.RocketMQConfig, group string) (rocketmq.Producer, error) {
@@ -50,8 +55,11 @@ func NewPushConsumer(r *config.RocketMQConfig, group string) (rocketmq.PushConsu
 	)
 }
 
-func Close(admin admin.Admin) {
-	err := admin.Close()
+func Close(client admin.Admin) {
+	if client == nil {
+		return
+	}
+	err := client.Close()
 	if err != nil {
 		fmt.Printf("Shutdown admin error: %s", err.Error())
 	}

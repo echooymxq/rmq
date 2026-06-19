@@ -2,6 +2,8 @@ package message
 
 import (
 	"fmt"
+
+	"github.com/echooymxq/rmq/pkg/cli"
 	"github.com/echooymxq/rmq/pkg/config"
 	"github.com/echooymxq/rmq/pkg/rocketmq"
 	"github.com/spf13/cobra"
@@ -14,20 +16,22 @@ func Query(r *config.RocketMQConfig) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use: "query",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			admin, err := rocketmq.NewAdminClient(r)
-			defer rocketmq.Close(admin)
-			if err == nil {
-				messageExt, err := admin.ViewMessage(messageId)
-				if err == nil {
-					fmt.Printf("query message success: %s\n", messageExt.String())
-				} else {
-					fmt.Println(err)
-				}
+			if err != nil {
+				return err
 			}
+			defer rocketmq.Close(admin)
+			messageExt, err := admin.ViewMessage(messageId)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("query message success: %s\n", messageExt.String())
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&topic, "topic", "t", "", "")
 	cmd.Flags().StringVarP(&messageId, "msgId", "m", "", "offsetMsgId")
+	cli.MarkFlagsRequired(cmd, "msgId")
 	return cmd
 }

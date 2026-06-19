@@ -7,7 +7,7 @@ import (
 
 func NewCommand(r *config.RocketMQConfig) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "namesrv",
+		Use:   "nameserver",
 		Short: "",
 	}
 	r.InstallRocketMQFlags(cmd)

@@ -3,12 +3,14 @@ package topic
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/apache/rocketmq-client-go/v2/primitive"
+	"github.com/echooymxq/rmq/pkg/cli"
 	"github.com/echooymxq/rmq/pkg/config"
 	"github.com/echooymxq/rmq/pkg/rocketmq"
 	"github.com/spf13/cobra"
-	"strconv"
-	"time"
 )
 
 func Produce(r *config.RocketMQConfig) *cobra.Command {
@@ -53,5 +55,6 @@ func Produce(r *config.RocketMQConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&topic, "topic", "t", "", "")
 	cmd.Flags().Int64VarP(&delayMills, "delayMills", "m", -1, "message delay mill seconds")
 	cmd.Flags().IntVarP(&delayLevel, "delayLevel", "l", -1, "message delay level")
+	cli.MarkFlagsRequired(cmd, "topic")
 	return cmd
 }

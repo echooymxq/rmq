@@ -14,9 +14,9 @@ func NewCommand(r *config.RocketMQConfig) *cobra.Command {
 
 	cmd.AddCommand(
 		Create(r),
-		List(r),
 		Consume(r),
 		Describe(r),
+		List(r),
 	)
 	return cmd
 }

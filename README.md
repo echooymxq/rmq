@@ -1,6 +1,6 @@
 # RMQ
 
-a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, etc.
+`rmq` aims to provide a modern RocketMQ CLI with a resource-oriented command model, first-class context-based connection configuration, quiet and predictable output, and script-friendly structured data. Compared with the official admin tools, it focuses on daily operations, multi-environment workflows, troubleshooting, and automation rather than exposing low-level admin APIs directly.
 
 
 ## Features
@@ -12,69 +12,19 @@ a cli for `Apache RocketMQ` to manage topics, groups, clusters, acls, brokers, e
     - [x] describe
     - [ ] delete
     - [ ] update
+    - [ ] route
 - group
     - [x] create
     - [x] list
-    - [ ] delete
-    - [ ] update
-    - [ ] resetOffset
     - [x] describe
     - [x] consume
+    - [ ] delete
+    - [ ] update
 - message
     - [x] query
-- namesrv
+    - [ ] trace
+- nameserver
   - [x] config
 - broker
   - [x] list
   - [x] config
-
-## How to use
-
-* Create a rocketmq config file `~/.config/rmq/rmq.yaml`:
-
-```yaml
-AccessKey: rocketmq2
-SecretKey: 12345678
-NamesrvAddrs: 127.0.0.1:9876
-```
-
-* Create a topic:
-
-```shell
-rmq topic create -t TopicTest -b 127.0.0.1:10911
-```
-
-* Describe a topic:
-
-```shell
-rmq topic describe -t TopicTest
-```
-
-* List all topics:
-
-```shell
-rmq topic list
-```
-
-* Produce a message:
-
-```shell
-rmq topic produce -t TopicTest
-```
-
-* Create a group:
-
-```shell
-rmq group create -g GroupTest
-```
-* List all groups:
-
-```shell
-rmq group list
-```
-
-* Consume a message:
-
-```shell
-rmq group consume -g GID_Test -t TopicTest
-```
