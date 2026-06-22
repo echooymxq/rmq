@@ -3,8 +3,10 @@ package group
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
@@ -19,6 +21,7 @@ func Consume(r *config.RocketMQConfig) *cobra.Command {
 		group   string
 		topic   string
 		verbose bool
+		sleep   time.Duration
 	)
 
 	var cmd = &cobra.Command{
@@ -37,6 +40,9 @@ func Consume(r *config.RocketMQConfig) *cobra.Command {
 				func(ctx context.Context, msgs ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
 					for i := range msgs {
 						encoderMu.Lock()
+						if sleep > 0 {
+							time.Sleep(sleep)
+						}
 						if err := encoder.Encode(rocketmq.NewMessage(msgs[i], verbose)); err != nil {
 							encoderMu.Unlock()
 							return consumer.ConsumeRetryLater, err
@@ -52,6 +58,7 @@ func Consume(r *config.RocketMQConfig) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			fmt.Fprintln(cmd.OutOrStdout(), "consumer started successfully")
 			<-sig
 			return nil
 		},
@@ -60,6 +67,7 @@ func Consume(r *config.RocketMQConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&group, "group", "g", "", "")
 	cmd.Flags().StringVarP(&topic, "topic", "t", "", "")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "")
+	cmd.Flags().DurationVarP(&sleep, "sleep", "s", 0, "sleep duration per message to mock business processing time (e.g. 100ms, 1s)")
 	cli.MarkFlagsRequired(cmd, "group", "topic")
 	return cmd
 }
