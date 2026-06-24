@@ -69,7 +69,7 @@ Manage RocketMQ topics and produce test messages.
 | Command | Description |
 | --- | --- |
 | `rmq topic list` | List all topics. |
-| `rmq topic create -t TOPIC [-b BROKER] [-m MESSAGE_TYPE]` | Create a topic on all master brokers, or on one broker when `-b` is set. |
+| `rmq topic create -t TOPIC [-b BROKER] [-m MESSAGE_TYPE] [-q QUEUE_NUM]` | Create a topic on all master brokers, or on one broker when `-b` is set. `-q` sets both read and write queue counts. |
 | `rmq topic delete -t TOPIC [-b BROKER]` | Delete a topic from all master brokers, or from one broker when `-b` is set. |
 | `rmq topic describe -t TOPIC` | Show topic configuration. |
 | `rmq topic describe -t TOPIC --route` | Show topic route data. |
@@ -80,7 +80,7 @@ Examples:
 
 ```shell
 rmq topic list
-rmq topic create -t OrderTopic
+rmq topic create -t OrderTopic -q 8
 rmq topic describe -t OrderTopic --route
 rmq topic produce -t OrderTopic -b '{"id":1}' -c 3
 ```

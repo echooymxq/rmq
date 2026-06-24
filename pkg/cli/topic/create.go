@@ -19,11 +19,17 @@ func Create(r *config.RocketMQConfig) *cobra.Command {
 		messageType string
 		topic       string
 		brokerAddr  string
+		queueNum    int
 	)
 	var cmd = &cobra.Command{
 		Use:  "create",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			queueNums, err := resolveCreateQueueNum(cmd, queueNum)
+			if err != nil {
+				return err
+			}
+
 			client, err := rocketmq.NewAdminClient(r)
 			if err != nil {
 				return err
@@ -31,7 +37,7 @@ func Create(r *config.RocketMQConfig) *cobra.Command {
 			defer rocketmq.Close(client)
 
 			if brokerAddr != "" {
-				if err := createTopicOnBroker(client, topic, messageType, brokerAddr); err != nil {
+				if err := createTopicOnBroker(client, topic, messageType, brokerAddr, queueNums); err != nil {
 					return err
 				}
 				fmt.Fprintf(cmd.OutOrStdout(), "Created topic %q on broker %s.\n", topic, brokerAddr)
@@ -59,7 +65,7 @@ func Create(r *config.RocketMQConfig) *cobra.Command {
 				return errors.New("no master broker found")
 			}
 			for _, addr := range masterAddrs {
-				if err := createTopicOnBroker(client, topic, messageType, addr); err != nil {
+				if err := createTopicOnBroker(client, topic, messageType, addr, queueNums); err != nil {
 					return err
 				}
 			}
@@ -71,16 +77,34 @@ func Create(r *config.RocketMQConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&brokerAddr, "brokerAddr", "b", "", "")
 	cmd.Flags().StringVarP(&topic, "topic", "t", "", "")
 	cmd.Flags().StringVarP(&messageType, "messageType", "m", "NORMAL", "")
+	cmd.Flags().IntVarP(&queueNum, "queueNum", "q", 0, "read and write queue count")
 	cli.MarkFlagsRequired(cmd, "topic")
 
 	return cmd
 }
 
-func createTopicOnBroker(client admin.Admin, topic, messageType, brokerAddr string) error {
+func resolveCreateQueueNum(cmd *cobra.Command, queueNum int) (int, error) {
+	if !cmd.Flags().Changed("queueNum") {
+		return 0, nil
+	}
+	if queueNum <= 0 {
+		return 0, errors.New("queueNum must be positive")
+	}
+
+	return queueNum, nil
+}
+
+func createTopicOnBroker(client admin.Admin, topic, messageType, brokerAddr string, queueNum int) error {
 	opts := []admin.OptionCreate{
 		admin.WithTopicCreate(topic),
 		admin.WithAttribute("message.type", messageType),
 		admin.WithBrokerAddrCreate(brokerAddr),
+	}
+	if queueNum > 0 {
+		opts = append(opts,
+			admin.WithReadQueueNums(queueNum),
+			admin.WithWriteQueueNums(queueNum),
+		)
 	}
 	if err := client.CreateTopic(context.Background(), opts...); err != nil {
 		return fmt.Errorf("create topic %q on broker %s: %w", topic, brokerAddr, err)
