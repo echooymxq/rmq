@@ -18,7 +18,6 @@ contexts:
       - 10.0.0.1:9876
     accessKey: prod-ak
     secretKey: prod-sk
-    timeout: 5s
 `)
 	r := executeConfig(t, "--config", configFile)
 
@@ -26,7 +25,6 @@ contexts:
 	assertEqual(t, r.Runtime.NamesrvAddrs[0], "10.0.0.1:9876")
 	assertEqual(t, r.Runtime.AccessKey, "prod-ak")
 	assertEqual(t, r.Runtime.SecretKey, "prod-sk")
-	assertEqual(t, r.Runtime.Timeout.String(), "5s")
 }
 
 func TestResolveAppliesFlagOverrides(t *testing.T) {
@@ -38,7 +36,6 @@ contexts:
       - 10.0.0.1:9876
     accessKey: prod-ak
     secretKey: prod-sk
-    timeout: 5s
   staging:
     namesrvAddrs:
       - 10.0.0.2:9876
@@ -51,7 +48,6 @@ contexts:
 		"-n", "127.0.0.1:9876,127.0.0.2:9876",
 		"--accessKey", "flag-ak",
 		"--secretKey", "flag-sk",
-		"--timeout", "2s",
 	)
 
 	assertEqual(t, r.Runtime.Context, "staging")
@@ -59,7 +55,6 @@ contexts:
 	assertEqual(t, r.Runtime.NamesrvAddrs[1], "127.0.0.2:9876")
 	assertEqual(t, r.Runtime.AccessKey, "flag-ak")
 	assertEqual(t, r.Runtime.SecretKey, "flag-sk")
-	assertEqual(t, r.Runtime.Timeout.String(), "2s")
 }
 
 func TestResolveRejectsTopLevelLegacyConfig(t *testing.T) {
@@ -112,13 +107,11 @@ contexts:
   staging:
     namesrvAddrs:
       - 10.0.0.2:9876
-    timeout: 2s
   prod:
     namesrvAddrs:
       - 10.0.0.1:9876
     accessKey: prod-ak
     secretKey: prod-sk
-    timeout: 5s
 `)
 	r := &RocketMQConfig{ConfigFile: configFile}
 
@@ -132,7 +125,6 @@ contexts:
 	assertEqual(t, store.Contexts[0].Name, "prod")
 	assertEqual(t, store.Contexts[0].NamesrvAddrs[0], "10.0.0.1:9876")
 	assertEqual(t, store.Contexts[0].AccessKey, "prod-ak")
-	assertEqual(t, store.Contexts[0].Timeout, "5s")
 	if !store.Contexts[0].Current {
 		t.Fatal("expected prod to be current")
 	}
@@ -160,6 +152,33 @@ func TestLoadContextStoreRejectsMissingExplicitConfig(t *testing.T) {
 
 	if _, err := r.LoadContextStore(); err == nil {
 		t.Fatal("expected missing explicit config error")
+	}
+}
+
+func TestContextExists(t *testing.T) {
+	configFile := writeConfig(t, `
+current: prod
+contexts:
+  prod:
+    namesrvAddrs:
+      - 10.0.0.1:9876
+`)
+	r := &RocketMQConfig{ConfigFile: configFile}
+
+	exists, err := r.ContextExists("prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exists {
+		t.Fatal("expected prod context to exist")
+	}
+
+	exists, err = r.ContextExists("missing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		t.Fatal("expected missing context not to exist")
 	}
 }
 
@@ -212,6 +231,100 @@ contexts:
 
 	if err := r.SetCurrentContext("missing"); err == nil {
 		t.Fatal("expected missing context error")
+	}
+}
+
+func TestAddContext(t *testing.T) {
+	configFile := writeConfig(t, `
+current: prod
+contexts:
+  prod:
+    namesrvAddrs:
+      - 10.0.0.1:9876
+`)
+	r := &RocketMQConfig{ConfigFile: configFile}
+
+	if err := r.AddContext("staging", []string{"10.0.0.2:9876"}, "staging-ak", "staging-sk"); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, _, err := readConfigFile(configFile, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEqual(t, cfg.Current, "prod")
+	if _, ok := cfg.Contexts["staging"]; !ok {
+		t.Fatal("expected staging context to be added")
+	}
+	assertEqual(t, cfg.Contexts["staging"].NamesrvAddrs[0], "10.0.0.2:9876")
+	assertEqual(t, cfg.Contexts["staging"].AccessKey, "staging-ak")
+	assertEqual(t, cfg.Contexts["staging"].SecretKey, "staging-sk")
+}
+
+func TestAddContextSetsCurrentWhenEmpty(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), "rmq.yaml")
+	r := &RocketMQConfig{ConfigFile: configFile}
+
+	if err := r.AddContext("first", []string{"10.0.0.1:9876"}, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, _, err := readConfigFile(configFile, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEqual(t, cfg.Current, "first")
+}
+
+func TestAddContextCreatesDesignYAML(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), "missing-dir", "rmq.yaml")
+	r := &RocketMQConfig{ConfigFile: configFile}
+
+	if err := r.AddContext("prod", []string{"10.0.0.1:9876"}, "xxx", "xxx"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertEqual(t, string(data), `current: prod
+contexts:
+  prod:
+    namesrvAddrs:
+      - 10.0.0.1:9876
+    accessKey: xxx
+    secretKey: xxx
+`)
+}
+
+func TestAddContextRejectsDuplicate(t *testing.T) {
+	configFile := writeConfig(t, `
+current: prod
+contexts:
+  prod:
+    namesrvAddrs:
+      - 10.0.0.1:9876
+`)
+	r := &RocketMQConfig{ConfigFile: configFile}
+
+	if err := r.AddContext("prod", []string{"10.0.0.2:9876"}, "", ""); err == nil {
+		t.Fatal("expected duplicate context error")
+	}
+}
+
+func TestAddContextRejectsEmptyName(t *testing.T) {
+	r := new(RocketMQConfig)
+	if err := r.AddContext("", []string{"10.0.0.1:9876"}, "", ""); err == nil {
+		t.Fatal("expected empty name error")
+	}
+}
+
+func TestAddContextRejectsEmptyNamesrv(t *testing.T) {
+	r := new(RocketMQConfig)
+	if err := r.AddContext("test", nil, "", ""); err == nil {
+		t.Fatal("expected empty nameserver error")
 	}
 }
 

@@ -1,13 +1,13 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -20,7 +20,6 @@ const (
 	FlagContext        = "context"
 	FlagNameserver     = "nameserver"
 	FlagSecretKey      = "secretKey"
-	FlagTimeout        = "timeout"
 )
 
 const AnnotationSkipResolve = "rmq.echooymxq.io/skip-resolve"
@@ -31,7 +30,6 @@ type RocketMQConfig struct {
 	AccessKey    string
 	SecretKey    string
 	NamesrvAddrs string
-	Timeout      string
 
 	Runtime RuntimeConfig
 }
@@ -42,7 +40,6 @@ type RuntimeConfig struct {
 	NamesrvAddrs []string
 	AccessKey    string
 	SecretKey    string
-	Timeout      time.Duration
 }
 
 type ContextStore struct {
@@ -56,7 +53,6 @@ type ContextSummary struct {
 	Current      bool
 	NamesrvAddrs []string
 	AccessKey    string
-	Timeout      string
 }
 
 type fileConfig struct {
@@ -66,9 +62,8 @@ type fileConfig struct {
 
 type contextConfig struct {
 	NamesrvAddrs stringList `yaml:"namesrvAddrs"`
-	AccessKey    string     `yaml:"accessKey"`
-	SecretKey    string     `yaml:"secretKey"`
-	Timeout      string     `yaml:"timeout"`
+	AccessKey    string     `yaml:"accessKey,omitempty"`
+	SecretKey    string     `yaml:"secretKey,omitempty"`
 }
 
 type stringList []string
@@ -80,7 +75,7 @@ func (s *stringList) UnmarshalYAML(value *yaml.Node) error {
 			*s = nil
 			return nil
 		}
-		*s = splitAndTrim(value.Value)
+		*s = SplitAndTrim(value.Value)
 		return nil
 	case yaml.SequenceNode:
 		var values []string
@@ -108,7 +103,6 @@ func (r *RocketMQConfig) InstallRootFlags(cmd *cobra.Command) {
 	pf.StringVarP(&r.NamesrvAddrs, FlagNameserver, "n", "", "comma separated list of namesrv host:ports")
 	pf.StringVar(&r.AccessKey, FlagAccessKey, "", "access key")
 	pf.StringVar(&r.SecretKey, FlagSecretKey, "", "secret key")
-	pf.StringVar(&r.Timeout, FlagTimeout, "", "request timeout, such as 3s or 500ms")
 }
 
 func (r *RocketMQConfig) InstallRocketMQFlags(cmd *cobra.Command) {
@@ -159,19 +153,11 @@ func (r *RocketMQConfig) Resolve(cmd *cobra.Command) error {
 	if len(runtime.NamesrvAddrs) == 0 {
 		return errors.New("nameserver is required")
 	}
-	if r.Timeout != "" || runtime.Timeout > 0 {
-		if runtime.Timeout < 0 {
-			return errors.New("timeout must be positive")
-		}
-	}
 
 	r.Runtime = runtime
 	r.NamesrvAddrs = strings.Join(runtime.NamesrvAddrs, ",")
 	r.AccessKey = runtime.AccessKey
 	r.SecretKey = runtime.SecretKey
-	if runtime.Timeout > 0 {
-		r.Timeout = runtime.Timeout.String()
-	}
 	return nil
 }
 
@@ -179,7 +165,7 @@ func (r *RocketMQConfig) GetNamesrvAddrs() []string {
 	if len(r.Runtime.NamesrvAddrs) > 0 {
 		return append([]string(nil), r.Runtime.NamesrvAddrs...)
 	}
-	return splitAndTrim(r.NamesrvAddrs)
+	return SplitAndTrim(r.NamesrvAddrs)
 }
 
 func (r *RocketMQConfig) LoadContextStore() (ContextStore, error) {
@@ -217,10 +203,77 @@ func (r *RocketMQConfig) LoadContextStore() (ContextStore, error) {
 			Current:      name == cfg.Current,
 			NamesrvAddrs: append([]string(nil), ctx.NamesrvAddrs...),
 			AccessKey:    ctx.AccessKey,
-			Timeout:      ctx.Timeout,
 		})
 	}
 	return store, nil
+}
+
+func (r *RocketMQConfig) ContextExists(name string) (bool, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return false, errors.New("context name is required")
+	}
+
+	configFile, explicitConfig, err := r.resolveConfigFile()
+	if err != nil {
+		return false, err
+	}
+	cfg, loaded, err := readConfigFile(configFile, explicitConfig)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if !loaded || cfg.Contexts == nil {
+		return false, nil
+	}
+
+	_, ok := cfg.Contexts[name]
+	return ok, nil
+}
+
+func (r *RocketMQConfig) AddContext(name string, namesrvAddrs []string, accessKey, secretKey string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return errors.New("context name is required")
+	}
+	if len(namesrvAddrs) == 0 {
+		return errors.New("nameserver is required")
+	}
+
+	configFile, explicitConfig, err := r.resolveConfigFile()
+	if err != nil {
+		return err
+	}
+	cfg, loaded, err := readConfigFile(configFile, explicitConfig)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	}
+	if !loaded {
+		cfg = fileConfig{
+			Contexts: make(map[string]contextConfig),
+		}
+	}
+	if cfg.Contexts == nil {
+		cfg.Contexts = make(map[string]contextConfig)
+	}
+	if _, ok := cfg.Contexts[name]; ok {
+		return fmt.Errorf("context %q already exists", name)
+	}
+
+	cfg.Contexts[name] = contextConfig{
+		NamesrvAddrs: stringList(namesrvAddrs),
+		AccessKey:    accessKey,
+		SecretKey:    secretKey,
+	}
+	if cfg.Current == "" {
+		cfg.Current = name
+	}
+
+	return writeConfigFile(configFile, cfg)
 }
 
 func (r *RocketMQConfig) SetCurrentContext(name string) error {
@@ -248,15 +301,31 @@ func (r *RocketMQConfig) SetCurrentContext(name string) error {
 	}
 	cfg.Current = name
 
+	return writeConfigFile(configFile, cfg)
+}
+
+func writeConfigFile(configFile string, cfg fileConfig) error {
 	mode := os.FileMode(0600)
 	if info, err := os.Stat(configFile); err == nil {
 		mode = info.Mode().Perm()
 	}
-	data, err := yaml.Marshal(&cfg)
-	if err != nil {
+
+	if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
 		return err
 	}
-	return os.WriteFile(configFile, data, mode)
+
+	var data bytes.Buffer
+	encoder := yaml.NewEncoder(&data)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(&cfg); err != nil {
+		_ = encoder.Close()
+		return err
+	}
+	if err := encoder.Close(); err != nil {
+		return err
+	}
+
+	return os.WriteFile(configFile, data.Bytes(), mode)
 }
 
 func (r *RocketMQConfig) resolveConfigFile() (string, bool, error) {
@@ -315,20 +384,13 @@ func applyContext(runtime *RuntimeConfig, ctx contextConfig) error {
 	}
 	runtime.AccessKey = ctx.AccessKey
 	runtime.SecretKey = ctx.SecretKey
-	if ctx.Timeout != "" {
-		timeout, err := time.ParseDuration(ctx.Timeout)
-		if err != nil {
-			return fmt.Errorf("invalid timeout %q: %w", ctx.Timeout, err)
-		}
-		runtime.Timeout = timeout
-	}
 	return nil
 }
 
 func applyFlagOverrides(cmd *cobra.Command, r *RocketMQConfig, runtime *RuntimeConfig) error {
 	if cmd == nil {
 		if r.NamesrvAddrs != "" {
-			runtime.NamesrvAddrs = splitAndTrim(r.NamesrvAddrs)
+			runtime.NamesrvAddrs = SplitAndTrim(r.NamesrvAddrs)
 		}
 		if r.AccessKey != "" {
 			runtime.AccessKey = r.AccessKey
@@ -336,30 +398,16 @@ func applyFlagOverrides(cmd *cobra.Command, r *RocketMQConfig, runtime *RuntimeC
 		if r.SecretKey != "" {
 			runtime.SecretKey = r.SecretKey
 		}
-		if r.Timeout != "" {
-			timeout, err := time.ParseDuration(r.Timeout)
-			if err != nil {
-				return fmt.Errorf("invalid timeout %q: %w", r.Timeout, err)
-			}
-			runtime.Timeout = timeout
-		}
 		return nil
 	}
 	if flagChanged(cmd, FlagNameserver) {
-		runtime.NamesrvAddrs = splitAndTrim(r.NamesrvAddrs)
+		runtime.NamesrvAddrs = SplitAndTrim(r.NamesrvAddrs)
 	}
 	if flagChanged(cmd, FlagAccessKey) {
 		runtime.AccessKey = r.AccessKey
 	}
 	if flagChanged(cmd, FlagSecretKey) {
 		runtime.SecretKey = r.SecretKey
-	}
-	if flagChanged(cmd, FlagTimeout) && r.Timeout != "" {
-		timeout, err := time.ParseDuration(r.Timeout)
-		if err != nil {
-			return fmt.Errorf("invalid timeout %q: %w", r.Timeout, err)
-		}
-		runtime.Timeout = timeout
 	}
 	return nil
 }
@@ -375,7 +423,7 @@ func flagChanged(cmd *cobra.Command, name string) bool {
 	return flag != nil && flag.Changed
 }
 
-func splitAndTrim(value string) []string {
+func SplitAndTrim(value string) []string {
 	if value == "" {
 		return nil
 	}
