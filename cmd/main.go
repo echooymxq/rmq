@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/echooymxq/rmq/pkg/cli/broker"
+	"github.com/echooymxq/rmq/pkg/cli/cluster"
 	contextcmd "github.com/echooymxq/rmq/pkg/cli/context"
 	"github.com/echooymxq/rmq/pkg/cli/group"
 	"github.com/echooymxq/rmq/pkg/cli/message"
@@ -32,11 +33,12 @@ func main() {
 		return r.Resolve(cmd)
 	}
 	root.AddCommand(contextcmd.NewCommand(r))
+	root.AddCommand(cluster.NewCommand(r))
+	root.AddCommand(broker.NewCommand(r))
+	root.AddCommand(namesrv.NewCommand(r))
 	root.AddCommand(topic.NewCommand(r))
 	root.AddCommand(group.NewCommand(r))
 	root.AddCommand(message.NewCommand(r))
-	root.AddCommand(namesrv.NewCommand(r))
-	root.AddCommand(broker.NewCommand(r))
 
 	err := root.Execute()
 	if err != nil {
