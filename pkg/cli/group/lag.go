@@ -36,7 +36,7 @@ func Lag(r *config.RocketMQConfig) *cobra.Command {
 			}
 
 			lags := calculateConsumeLags(stats)
-			renderConsumeLag(cmd, lags)
+			printConsumeLag(cmd, lags)
 			return nil
 		},
 	}
@@ -160,7 +160,7 @@ func calculateConsumeLags(stats *admin.ConsumeStats) []consumeLag {
 	return lags
 }
 
-func renderConsumeLag(cmd *cobra.Command, lags []consumeLag) {
+func printConsumeLag(cmd *cobra.Command, lags []consumeLag) {
 	table := tablewriter.NewWriter(cmd.OutOrStdout())
 	table.SetHeader([]string{"Topic", "Broker", "QueueId", "ConsumerOffset", "BrokerOffset", "Lag", "LastTimestamp"})
 	table.SetAutoFormatHeaders(false)

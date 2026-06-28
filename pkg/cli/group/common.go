@@ -154,7 +154,7 @@ func getSubscriptions(connection *admin.ConsumerConnection) []subscription {
 	return subscriptions
 }
 
-func renderSectionTitle(cmd *cobra.Command, title string) {
+func printSectionTitle(cmd *cobra.Command, title string) {
 	fmt.Fprintln(cmd.OutOrStdout(), title)
 	fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", len(title)))
 }

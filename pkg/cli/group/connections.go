@@ -43,7 +43,7 @@ func Connections(r *config.RocketMQConfig) *cobra.Command {
 				})
 			}
 
-			renderConsumerConnections(cmd, connection, results)
+			printConsumerConnections(cmd, connection, results)
 			return nil
 		},
 	}
@@ -52,8 +52,8 @@ func Connections(r *config.RocketMQConfig) *cobra.Command {
 	return cmd
 }
 
-func renderConsumerConnections(cmd *cobra.Command, connection *admin.ConsumerConnection, results []consumerStatusResult) {
-	renderSectionTitle(cmd, "Group Summary")
+func printConsumerConnections(cmd *cobra.Command, connection *admin.ConsumerConnection, results []consumerStatusResult) {
+	printSectionTitle(cmd, "Group Summary")
 	summaryTable := newSectionTable(cmd)
 	summaryTable.SetHeader([]string{"Online", "InstanceCount", "ConsumeType", "MessageModel", "ConsumeFromWhere"})
 	instanceCount := 0
@@ -76,7 +76,7 @@ func renderConsumerConnections(cmd *cobra.Command, connection *admin.ConsumerCon
 	summaryTable.Render()
 
 	fmt.Fprintln(cmd.OutOrStdout())
-	renderSectionTitle(cmd, "Consumer Instances")
+	printSectionTitle(cmd, "Consumer Instances")
 	table := newSectionTable(cmd)
 	table.SetHeader([]string{"ClientId", "ClientAddr", "Language", "Version"})
 	for _, result := range results {
@@ -92,7 +92,7 @@ func renderConsumerConnections(cmd *cobra.Command, connection *admin.ConsumerCon
 	subscriptions := getSubscriptions(connection)
 	if len(subscriptions) > 0 {
 		fmt.Fprintln(cmd.OutOrStdout())
-		renderSectionTitle(cmd, "Subscriptions")
+		printSectionTitle(cmd, "Subscriptions")
 		subscriptionTable := newSectionTable(cmd)
 		subscriptionTable.SetHeader([]string{"Topic", "ExpressionType", "Expression"})
 		for _, subscription := range subscriptions {

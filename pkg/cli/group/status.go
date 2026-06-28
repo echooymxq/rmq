@@ -2,11 +2,9 @@ package group
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/apache/rocketmq-client-go/v2/admin"
@@ -15,6 +13,41 @@ import (
 	"github.com/echooymxq/rmq/pkg/rocketmq"
 	"github.com/spf13/cobra"
 )
+
+type consumerStatusResult struct {
+	Client      admin.Connection
+	RunningInfo *admin.ConsumerRunningInfo
+	RunningErr  error
+}
+
+type runningSubscription struct {
+	Topic         string
+	ClassFilter   bool
+	SubExpression string
+}
+
+type runningQueue struct {
+	Topic                string
+	Broker               string
+	QueueId              int
+	CommitOffset         int64
+	CachedMsgMinOffset   int64
+	CachedMsgMaxOffset   int64
+	CachedMsgCount       int
+	CachedMsgSizeInMiB   int64
+	LastPullTimestamp    int64
+	LastConsumeTimestamp int64
+}
+
+type runningRTTPS struct {
+	Topic             string
+	PullRT            float64
+	PullTPS           float64
+	ConsumeRT         float64
+	ConsumeOKTPS      float64
+	ConsumeFailedTPS  float64
+	ConsumeFailedMsgs int64
+}
 
 func Status(r *config.RocketMQConfig) *cobra.Command {
 	var (
@@ -57,10 +90,10 @@ func Status(r *config.RocketMQConfig) *cobra.Command {
 				})
 			}
 
-			renderConsumers(cmd, results)
-			renderConsumerSubscriptions(cmd, collectStatusSubscriptionRows(connection, results))
+			printConsumers(cmd, results)
+			printConsumerSubscriptions(cmd, collectStatusSubscriptionRows(connection, results))
 			for i, result := range results {
-				renderConsumerStatus(cmd, i+1, len(results), result, stack)
+				printConsumerStatus(cmd, i+1, len(results), result, stack)
 			}
 			return nil
 		},
@@ -86,14 +119,8 @@ func filterConsumerConnections(connections []admin.Connection, clientId string) 
 	return result
 }
 
-type consumerStatusResult struct {
-	Client      admin.Connection
-	RunningInfo *admin.ConsumerRunningInfo
-	RunningErr  error
-}
-
-func renderConsumers(cmd *cobra.Command, results []consumerStatusResult) {
-	renderSectionTitle(cmd, "Consumers")
+func printConsumers(cmd *cobra.Command, results []consumerStatusResult) {
+	printSectionTitle(cmd, "Consumers")
 	table := newSectionTable(cmd)
 	table.SetHeader([]string{"#", "ClientId", "Addr", "Version", "StartTime"})
 	for i, result := range results {
@@ -108,9 +135,9 @@ func renderConsumers(cmd *cobra.Command, results []consumerStatusResult) {
 	table.Render()
 }
 
-func renderConsumerStatus(cmd *cobra.Command, index, total int, result consumerStatusResult, stack bool) {
+func printConsumerStatus(cmd *cobra.Command, index, total int, result consumerStatusResult, stack bool) {
 	fmt.Fprintln(cmd.OutOrStdout())
-	renderConsumerHeader(cmd, index, total, result.Client)
+	printConsumerHeader(cmd, index, total, result.Client)
 	if result.RunningErr != nil {
 		fmt.Fprintf(cmd.OutOrStdout(), "No consumer running info: %v\n", result.RunningErr)
 		return
@@ -121,22 +148,22 @@ func renderConsumerStatus(cmd *cobra.Command, index, total int, result consumerS
 	}
 
 	queueRows := collectRunningQueueRows(result.RunningInfo)
-	renderConsumerQueues(cmd, queueRows)
-	renderConsumerRTTPS(cmd, collectRunningRTTPSRows(result.RunningInfo))
+	printConsumerQueues(cmd, queueRows)
+	printConsumerRTTPS(cmd, collectRunningRTTPSRows(result.RunningInfo))
 	if stack {
-		renderConsumerStack(cmd, result.RunningInfo.Jstack)
+		printConsumerStack(cmd, result.RunningInfo.Jstack)
 	}
 }
 
-func renderConsumerHeader(cmd *cobra.Command, index, total int, client admin.Connection) {
+func printConsumerHeader(cmd *cobra.Command, index, total int, client admin.Connection) {
 	title := fmt.Sprintf("Consumer %d/%d: %s (%s)", index, total, client.ClientId, client.ClientAddr)
 	fmt.Fprintln(cmd.OutOrStdout(), title)
 	fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("=", len(title)))
 }
 
-func renderConsumerSubscriptions(cmd *cobra.Command, rows []runningSubscriptionRow) {
+func printConsumerSubscriptions(cmd *cobra.Command, rows []runningSubscription) {
 	fmt.Fprintln(cmd.OutOrStdout())
-	renderSectionTitle(cmd, "Consumer Subscriptions")
+	printSectionTitle(cmd, "Consumer Subscriptions")
 	table := newSectionTable(cmd)
 	table.SetHeader([]string{"Topic", "ClassFilter", "SubExpression"})
 	for _, row := range rows {
@@ -145,9 +172,9 @@ func renderConsumerSubscriptions(cmd *cobra.Command, rows []runningSubscriptionR
 	table.Render()
 }
 
-func renderConsumerQueues(cmd *cobra.Command, rows []runningQueueRow) {
+func printConsumerQueues(cmd *cobra.Command, rows []runningQueue) {
 	fmt.Fprintln(cmd.OutOrStdout())
-	renderSectionTitle(cmd, "Consumer Queues")
+	printSectionTitle(cmd, "Consumer Queues")
 	table := newSectionTable(cmd)
 	table.SetHeader([]string{
 		"Topic",
@@ -178,9 +205,9 @@ func renderConsumerQueues(cmd *cobra.Command, rows []runningQueueRow) {
 	table.Render()
 }
 
-func renderConsumerRTTPS(cmd *cobra.Command, rows []runningRTTPSRow) {
+func printConsumerRTTPS(cmd *cobra.Command, rows []runningRTTPS) {
 	fmt.Fprintln(cmd.OutOrStdout())
-	renderSectionTitle(cmd, "Consumer RT/TPS")
+	printSectionTitle(cmd, "Consumer RT/TPS")
 	table := newSectionTable(cmd)
 	table.SetHeader([]string{
 		"Topic",
@@ -205,9 +232,9 @@ func renderConsumerRTTPS(cmd *cobra.Command, rows []runningRTTPSRow) {
 	table.Render()
 }
 
-func renderConsumerStack(cmd *cobra.Command, stack string) {
+func printConsumerStack(cmd *cobra.Command, stack string) {
 	fmt.Fprintln(cmd.OutOrStdout())
-	renderSectionTitle(cmd, "Consumer Stack")
+	printSectionTitle(cmd, "Consumer Stack")
 	if strings.TrimSpace(stack) == "" {
 		fmt.Fprintln(cmd.OutOrStdout(), "No consumer stack dump.")
 		return
@@ -215,16 +242,10 @@ func renderConsumerStack(cmd *cobra.Command, stack string) {
 	fmt.Fprintln(cmd.OutOrStdout(), strings.TrimRight(stack, "\r\n"))
 }
 
-type runningSubscriptionRow struct {
-	Topic         string
-	ClassFilter   bool
-	SubExpression string
-}
-
-func collectStatusSubscriptionRows(connection *admin.ConsumerConnection, results []consumerStatusResult) []runningSubscriptionRow {
-	rowByKey := make(map[string]runningSubscriptionRow)
+func collectStatusSubscriptionRows(connection *admin.ConsumerConnection, results []consumerStatusResult) []runningSubscription {
+	rowByKey := make(map[string]runningSubscription)
 	add := func(topic string, classFilter bool, subExpression string) {
-		row := runningSubscriptionRow{
+		row := runningSubscription{
 			Topic:         valueOrDash(topic),
 			ClassFilter:   classFilter,
 			SubExpression: valueOrDash(subExpression),
@@ -251,7 +272,7 @@ func collectStatusSubscriptionRows(connection *admin.ConsumerConnection, results
 		}
 	}
 
-	rows := make([]runningSubscriptionRow, 0, len(rowByKey))
+	rows := make([]runningSubscription, 0, len(rowByKey))
 	for _, row := range rowByKey {
 		rows = append(rows, row)
 	}
@@ -267,27 +288,14 @@ func collectStatusSubscriptionRows(connection *admin.ConsumerConnection, results
 	return rows
 }
 
-type runningQueueRow struct {
-	Topic                string
-	Broker               string
-	QueueId              int
-	CommitOffset         int64
-	CachedMsgMinOffset   int64
-	CachedMsgMaxOffset   int64
-	CachedMsgCount       int
-	CachedMsgSizeInMiB   int64
-	LastPullTimestamp    int64
-	LastConsumeTimestamp int64
-}
-
-func collectRunningQueueRows(runningInfo *admin.ConsumerRunningInfo) []runningQueueRow {
+func collectRunningQueueRows(runningInfo *admin.ConsumerRunningInfo) []runningQueue {
 	if runningInfo == nil {
 		return nil
 	}
 
-	rows := make([]runningQueueRow, 0, len(runningInfo.MQTable))
+	rows := make([]runningQueue, 0, len(runningInfo.MQTable))
 	for mq, queueInfo := range runningInfo.MQTable {
-		rows = append(rows, runningQueueRow{
+		rows = append(rows, runningQueue{
 			Topic:                mq.Topic,
 			Broker:               mq.BrokerName,
 			QueueId:              mq.QueueId,
@@ -313,24 +321,14 @@ func collectRunningQueueRows(runningInfo *admin.ConsumerRunningInfo) []runningQu
 	return rows
 }
 
-type runningRTTPSRow struct {
-	Topic             string
-	PullRT            float64
-	PullTPS           float64
-	ConsumeRT         float64
-	ConsumeOKTPS      float64
-	ConsumeFailedTPS  float64
-	ConsumeFailedMsgs int64
-}
-
-func collectRunningRTTPSRows(runningInfo *admin.ConsumerRunningInfo) []runningRTTPSRow {
+func collectRunningRTTPSRows(runningInfo *admin.ConsumerRunningInfo) []runningRTTPS {
 	if runningInfo == nil {
 		return nil
 	}
 
-	rows := make([]runningRTTPSRow, 0, len(runningInfo.StatusTable))
+	rows := make([]runningRTTPS, 0, len(runningInfo.StatusTable))
 	for topic, status := range runningInfo.StatusTable {
-		rows = append(rows, runningRTTPSRow{
+		rows = append(rows, runningRTTPS{
 			Topic:             topic,
 			PullRT:            status.PullRT,
 			PullTPS:           status.PullTPS,
@@ -380,42 +378,11 @@ func formatUnixMilli(value int64) string {
 	return time.UnixMilli(value).Local().Format("2006-01-02 15:04:05.000")
 }
 
-// getConsumerRunningInfo contains SDK behavior where empty broker responses can
-// panic during Decode and debug println calls can leak to stderr.
 func getConsumerRunningInfo(adminTool admin.Admin, group, clientId string, stack bool) (runningInfo *admin.ConsumerRunningInfo, err error) {
-	restoreStderr, restoreErr := suppressStderr()
-	if restoreErr == nil {
-		defer restoreStderr()
-	}
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = fmt.Errorf("get consumer running info for %q: %v", clientId, recovered)
 		}
 	}()
 	return adminTool.GetConsumerRunningInfo(group, clientId, stack)
-}
-
-func suppressStderr() (func(), error) {
-	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	stderrFd := int(os.Stderr.Fd())
-	backupFd, err := syscall.Dup(stderrFd)
-	if err != nil {
-		devNull.Close()
-		return nil, err
-	}
-	if err := syscall.Dup2(int(devNull.Fd()), stderrFd); err != nil {
-		syscall.Close(backupFd)
-		devNull.Close()
-		return nil, err
-	}
-
-	return func() {
-		_ = syscall.Dup2(backupFd, stderrFd)
-		_ = syscall.Close(backupFd)
-		_ = devNull.Close()
-	}, nil
 }
