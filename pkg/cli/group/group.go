@@ -16,6 +16,7 @@ func NewCommand(r *config.RocketMQConfig) *cobra.Command {
 		Connections(r),
 		Create(r),
 		Consume(r),
+		Delete(r),
 		Describe(r),
 		Lag(r),
 		List(r),
