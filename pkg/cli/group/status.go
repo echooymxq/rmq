@@ -121,8 +121,7 @@ func renderConsumerStatus(cmd *cobra.Command, index, total int, result consumerS
 	}
 
 	queueRows := collectRunningQueueRows(result.RunningInfo)
-	renderConsumerOffsets(cmd, queueRows)
-	renderConsumerMQDetails(cmd, queueRows)
+	renderConsumerQueues(cmd, queueRows)
 	renderConsumerRTTPS(cmd, collectRunningRTTPSRows(result.RunningInfo))
 	if stack {
 		renderConsumerStack(cmd, result.RunningInfo.Jstack)
@@ -146,30 +145,15 @@ func renderConsumerSubscriptions(cmd *cobra.Command, rows []runningSubscriptionR
 	table.Render()
 }
 
-func renderConsumerOffsets(cmd *cobra.Command, rows []runningQueueRow) {
+func renderConsumerQueues(cmd *cobra.Command, rows []runningQueueRow) {
 	fmt.Fprintln(cmd.OutOrStdout())
-	renderSectionTitle(cmd, "Consumer Offsets")
-	table := newSectionTable(cmd)
-	table.SetHeader([]string{"Topic", "Broker", "QueueId", "ConsumerOffset"})
-	for _, row := range rows {
-		table.Append([]string{
-			row.Topic,
-			row.Broker,
-			strconv.Itoa(row.QueueId),
-			strconv.FormatInt(row.CommitOffset, 10),
-		})
-	}
-	table.Render()
-}
-
-func renderConsumerMQDetails(cmd *cobra.Command, rows []runningQueueRow) {
-	fmt.Fprintln(cmd.OutOrStdout())
-	renderSectionTitle(cmd, "Consumer MQ Details")
+	renderSectionTitle(cmd, "Consumer Queues")
 	table := newSectionTable(cmd)
 	table.SetHeader([]string{
 		"Topic",
 		"Broker",
 		"QueueId",
+		"ConsumerOffset",
 		"CachedMsgCount",
 		"CachedMsgMinOffset",
 		"CachedMsgMaxOffset",
@@ -182,6 +166,7 @@ func renderConsumerMQDetails(cmd *cobra.Command, rows []runningQueueRow) {
 			row.Topic,
 			row.Broker,
 			strconv.Itoa(row.QueueId),
+			strconv.FormatInt(row.CommitOffset, 10),
 			strconv.Itoa(row.CachedMsgCount),
 			strconv.FormatInt(row.CachedMsgMinOffset, 10),
 			strconv.FormatInt(row.CachedMsgMaxOffset, 10),

@@ -28,6 +28,10 @@ func Connections(r *config.RocketMQConfig) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if len(connection.ConnectionSet) == 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "No active consumer clients.")
+				return nil
+			}
 
 			results := make([]consumerStatusResult, 0, len(connection.ConnectionSet))
 			for _, client := range connection.ConnectionSet {
