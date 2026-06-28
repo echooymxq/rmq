@@ -6,9 +6,9 @@
 
 [Apache RocketMQ](https://rocketmq.apache.org/) 命令行工具。
 
-`rmq` 是面向 RocketMQ 用户的现代 CLI。它围绕 Topic、Consumer Group、Message、Broker、Cluster、NameServer 等资源组织常用工作流。
+`rmq` 是面向 RocketMQ 用户的一款现代命令行工具，它按 Topic、Consumer Group、Message、Broker、Cluster、NameServer 等资源纬度组织常用操作。
 
-`rmq` 适合多环境运维和快速排障：Context 可以减少重复连接参数，输出保持安静且稳定，高频诊断信息被聚合到 `group status`、`group lag`、`message query` 等命令中。
+`rmq` 支持使用Context同时管理多个 RocketMQ 集群，避免每次重复输入 NameServer 和 ACL 参数。
 
 ## 为什么选择 rmq
 

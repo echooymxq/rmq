@@ -6,9 +6,9 @@ Languages: English | [中文](README-zh.md)
 
 The CLI (Command Line Interface) for [Apache RocketMQ](https://rocketmq.apache.org/).
 
-`rmq` is a modern CLI for RocketMQ users. It organizes common workflows around resources such as topics, consumer groups, messages, brokers, clusters, and nameservers.
+`rmq` is a modern command-line tool for RocketMQ users. It organizes common operations by resource dimensions such as Topic, Consumer Group, Message, Broker, Cluster, and NameServer.
 
-It is designed for multi-environment operations and fast troubleshooting: contexts remove repeated connection flags, output stays quiet and predictable, and high-signal diagnostics are grouped into commands such as `group status`, `group lag`, and `message query`.
+`rmq` supports using Contexts to manage multiple RocketMQ clusters at the same time, avoiding repeated NameServer and ACL parameters on every command.
 
 ## Why rmq
 
