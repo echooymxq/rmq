@@ -51,6 +51,7 @@ func Produce(r *config.RocketMQConfig) *cobra.Command {
 			}()
 
 			delayTimestamp := time.Now().UnixMilli() + delayMills
+			results := make([]*primitive.SendResult, 0, count)
 			for i := 0; i < count; i++ {
 				msgBody := []byte(body)
 				if !bodyFlagChanged {
@@ -75,12 +76,17 @@ func Produce(r *config.RocketMQConfig) *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("produce message %d/%d: %w", i+1, count, err)
 				}
+				if result == nil {
+					return fmt.Errorf("produce message %d/%d failed: empty send result", i+1, count)
+				}
 				if result.Status != primitive.SendOK {
 					return fmt.Errorf("produce message %d/%d failed: %s", i+1, count, result.String())
 				}
+				results = append(results, result)
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Produce %d message(s) success.\n", count)
+			renderProduceResults(cmd, topic, results)
 			return nil
 		},
 	}
@@ -93,6 +99,30 @@ func Produce(r *config.RocketMQConfig) *cobra.Command {
 	cmd.Flags().IntVarP(&delayLevel, "delayLevel", "l", -1, "message delay level")
 	cli.MarkFlagsRequired(cmd, "topic")
 	return cmd
+}
+
+func renderProduceResults(cmd *cobra.Command, topic string, results []*primitive.SendResult) {
+	out := cmd.OutOrStdout()
+	for i, result := range results {
+		topicName := topic
+		brokerName := "-"
+		queueID := "-"
+		if result.MessageQueue != nil {
+			if result.MessageQueue.Topic != "" {
+				topicName = result.MessageQueue.Topic
+			}
+			brokerName = result.MessageQueue.BrokerName
+			queueID = strconv.Itoa(result.MessageQueue.QueueId)
+		}
+		fmt.Fprintf(out, "Message %d: MessageId=%s Topic=%s Broker=%s QueueId=%s QueueOffset=%d\n",
+			i+1,
+			result.MsgID,
+			topicName,
+			brokerName,
+			queueID,
+			result.QueueOffset,
+		)
+	}
 }
 
 func randomBody(size int) ([]byte, error) {
