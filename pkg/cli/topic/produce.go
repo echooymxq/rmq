@@ -2,6 +2,7 @@ package topic
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"strconv"
 	"time"
@@ -12,6 +13,8 @@ import (
 	"github.com/echooymxq/rmq/pkg/rocketmq"
 	"github.com/spf13/cobra"
 )
+
+const defaultRandomBodySize = 4 * 1024
 
 func Produce(r *config.RocketMQConfig) *cobra.Command {
 	var (
@@ -29,6 +32,10 @@ func Produce(r *config.RocketMQConfig) *cobra.Command {
 			if count <= 0 {
 				return fmt.Errorf("count must be positive")
 			}
+			bodyFlagChanged := cmd.Flags().Changed("body")
+			if bodyFlagChanged && body == "" {
+				return fmt.Errorf("body must not be empty; omit --body to use a 4KB random body")
+			}
 			p, err := rocketmq.NewProducer(r, "rmq")
 			if err != nil {
 				return err
@@ -45,7 +52,14 @@ func Produce(r *config.RocketMQConfig) *cobra.Command {
 
 			delayTimestamp := time.Now().UnixMilli() + delayMills
 			for i := 0; i < count; i++ {
-				msg := primitive.NewMessage(topic, []byte(body))
+				msgBody := []byte(body)
+				if !bodyFlagChanged {
+					msgBody, err = randomBody(defaultRandomBodySize)
+					if err != nil {
+						return err
+					}
+				}
+				msg := primitive.NewMessage(topic, msgBody)
 
 				if delayMills > 0 {
 					msg.WithProperty("__STARTDELIVERTIME", strconv.FormatInt(delayTimestamp, 10))
@@ -73,9 +87,18 @@ func Produce(r *config.RocketMQConfig) *cobra.Command {
 
 	cmd.Flags().StringVarP(&topic, "topic", "t", "", "")
 	cmd.Flags().StringVarP(&body, "body", "b", "", "message body")
+	cmd.Flags().Lookup("body").DefValue = "4KB random body"
 	cmd.Flags().IntVarP(&count, "count", "c", 1, "message count")
 	cmd.Flags().Int64VarP(&delayMills, "delayMills", "m", -1, "message delay mill seconds")
 	cmd.Flags().IntVarP(&delayLevel, "delayLevel", "l", -1, "message delay level")
 	cli.MarkFlagsRequired(cmd, "topic")
 	return cmd
+}
+
+func randomBody(size int) ([]byte, error) {
+	body := make([]byte, size)
+	if _, err := rand.Read(body); err != nil {
+		return nil, fmt.Errorf("generate random message body: %w", err)
+	}
+	return body, nil
 }
