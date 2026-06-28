@@ -21,6 +21,28 @@
 | Message 排障 | 查询消息和确认消费组消费状态通常是两个独立流程。 | `rmq message query -t TOPIC -m MESSAGE_ID -g GROUP` 可以同时展示消息和 `ConsumeStatus`。 |
 | 运维默认值 | 更直接暴露底层参数。 | 默认行为和命令说明更明确，例如 `topic produce` 未指定 body 时默认发送 4KB 随机报文，`group delete` 默认删除消费组 offset。 |
 
+## Install
+
+在 macOS 或 Linux 上安装最新版本：
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/echooymxq/rmq/main/scripts/install.sh | bash
+```
+
+安装脚本会根据当前系统和架构下载对应的 release 包，并默认将 `rmq` 安装到 `/usr/local/bin`。
+
+安装指定版本：
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/echooymxq/rmq/main/scripts/install.sh | VERSION=0.1.0 bash
+```
+
+安装到指定目录：
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/echooymxq/rmq/main/scripts/install.sh | BINDIR="$HOME/.local/bin" bash
+```
+
 ## Context 配置
 
 Context 表示一个 RocketMQ 集群的连接配置。它包含集群的 NameServer 地址，以及可选的 ACL 凭据。你可以为 `local`、`staging`、`prod` 等环境维护多个 Context，并在命令之间切换，避免每次都重复传递连接参数。

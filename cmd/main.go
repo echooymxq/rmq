@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/echooymxq/rmq/pkg/cli/broker"
@@ -15,14 +16,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	version   = "dev"
+	commit    = "none"
+	buildDate = "unknown"
+)
+
 func main() {
 	rocketmq.DisableClientLogging()
 
 	root := &cobra.Command{
 		Use:          "rmq",
 		Short:        "Apache RocketMQ cli",
+		Version:      versionString(),
 		SilenceUsage: true,
 	}
+	root.SetVersionTemplate("{{.Version}}\n")
 
 	r := new(config.RocketMQConfig)
 	r.InstallRootFlags(root)
@@ -45,4 +54,8 @@ func main() {
 		os.Exit(1)
 	}
 
+}
+
+func versionString() string {
+	return fmt.Sprintf("rmq %s (commit %s, built %s)", version, commit, buildDate)
 }

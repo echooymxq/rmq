@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "**"
+    tags:
+      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -71,17 +73,34 @@ jobs:
           if [ "$GOOS" = "windows" ]; then
             binary="rmq.exe"
           fi
+          short_sha="$(printf '%s' "${GITHUB_SHA}" | cut -c1-8)"
+          version="dev-${short_sha}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          build_date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           go build \
             -trimpath \
-            -ldflags="-s -w" \
+            -ldflags="-s -w -X main.version=${version} -X main.commit=${short_sha} -X main.buildDate=${build_date}" \
             -o "dist/${binary}" \
             ./cmd
 
       - name: Package artifact
+        id: package
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          ARCHIVE: ${{ matrix.archive }}
         run: |
-          package="rmq-${{ github.sha }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+            package="rmq_${version}_${GOOS}_${GOARCH}"
+          else
+            short_sha="$(printf '%s' "${GITHUB_SHA}" | cut -c1-8)"
+            package="rmq-${short_sha}-${GOOS}-${GOARCH}"
+          fi
           mkdir -p "dist/${package}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
+          if [ "${GOOS}" = "windows" ]; then
             cp dist/rmq.exe "dist/${package}/rmq.exe"
             cd dist
             zip -r "${package}.zip" "${package}"
@@ -92,12 +111,41 @@ jobs:
             tar -czf "${package}.tar.gz" "${package}"
             shasum -a 256 "${package}.tar.gz" > "${package}.tar.gz.sha256"
           fi
+          echo "artifact=dist/${package}.${ARCHIVE}" >> "${GITHUB_OUTPUT}"
+          echo "checksum=dist/${package}.${ARCHIVE}.sha256" >> "${GITHUB_OUTPUT}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: rmq-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            dist/rmq-${{ github.sha }}-${{ matrix.goos }}-${{ matrix.goarch }}.${{ matrix.archive }}
-            dist/rmq-${{ github.sha }}-${{ matrix.goos }}-${{ matrix.goarch }}.${{ matrix.archive }}.sha256
+            ${{ steps.package.outputs.artifact }}
+            ${{ steps.package.outputs.checksum }}
           if-no-files-found: error
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" release-assets/* --clobber --repo "${GITHUB_REPOSITORY}"
+          else
+            gh release create "${GITHUB_REF_NAME}" release-assets/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${GITHUB_REF_NAME}" \
+              --notes "Release ${GITHUB_REF_NAME}"
+          fi

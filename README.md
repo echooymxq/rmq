@@ -21,6 +21,28 @@ The CLI (Command Line Interface) for [Apache RocketMQ](https://rocketmq.apache.o
 | Message troubleshooting | Querying a message and checking its group consumption state are separate workflows.                            | `rmq message query -t TOPIC -m MESSAGE_ID -g GROUP` shows the message and its `ConsumeStatus` together.                                                                       |
 | Operational defaults | Exposes more low-level switches directly.                                                                      | Uses clearer defaults and command descriptions, such as a 4KB random body for `topic produce` when no body is provided, and `group delete` removing group offsets by default. |
 
+## Install
+
+Install the latest release on macOS or Linux:
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/echooymxq/rmq/main/scripts/install.sh | bash
+```
+
+The install script downloads the matching release package for your OS and architecture, then installs `rmq` to `/usr/local/bin` by default.
+
+Install a specific version:
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/echooymxq/rmq/main/scripts/install.sh | VERSION=0.1.0 bash
+```
+
+Install to a custom directory:
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/echooymxq/rmq/main/scripts/install.sh | BINDIR="$HOME/.local/bin" bash
+```
+
 ## Context
 
 A context represents the connection configuration for one RocketMQ cluster. It
