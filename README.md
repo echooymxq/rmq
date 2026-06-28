@@ -6,7 +6,18 @@ The CLI (Command Line Interface) for [Apache RocketMQ](https://rocketmq.apache.o
 
 `rmq` is a command interaction tool for RocketMQ users and OPS teams. It provides a modern, resource-oriented command model for daily operations, multi-environment workflows, troubleshooting, and automation.
 
-Compared with the official admin tools, `rmq` focuses on quiet and predictable output, first-class context-based connection configuration, and script-friendly structured data rather than exposing low-level admin APIs directly.
+`rmq` focuses on daily operations and troubleshooting instead of exposing low-level admin APIs directly.
+
+## Why rmq
+
+| Area | rocketmq admin tool                                                                                            | rmq                                                                                                                                                                           |
+| --- |----------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Connection config | Pass NameServer and ACL flags repeatedly, or manage them outside the tool.                                     | Store cluster configs as contexts and switch with `rmq context use NAME`. Command flags still work as one-off overrides.                                                      |
+| Command model | Command names mostly mirror low-level admin operations.                                                        | Resource-oriented commands grouped by `topic`, `group`, `message`, `broker`, `cluster`, and `nameserver`.                                                                     |
+| Output | Often optimized for raw admin data and Java-side diagnostics.                                                  | Quiet, predictable CLI output with readable tables, stable fields.                                                                                                            |
+| Consumer troubleshooting | Connection, offset, lag, running status, and stack data are usually inspected through separate admin commands. | `rmq group connections`, `rmq group status`, and `rmq group lag` aggregate the high-signal consumer data needed for daily diagnosis.                                          |
+| Message troubleshooting | Querying a message and checking its group consumption state are separate workflows.                            | `rmq message query -t TOPIC -m MESSAGE_ID -g GROUP` shows the message and its `ConsumeStatus` together.                                                                       |
+| Operational defaults | Exposes more low-level switches directly.                                                                      | Uses clearer defaults and command descriptions, such as a 4KB random body for `topic produce` when no body is provided, and `group delete` removing group offsets by default. |
 
 ## Context
 
