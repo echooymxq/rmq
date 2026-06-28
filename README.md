@@ -1,12 +1,14 @@
-# Rmq
+# rmq
 
 ![](https://github.com/echooymxq/rmq/actions/workflows/build.yml/badge.svg?branch=main)
 
+Languages: English | [中文](README-zh.md)
+
 The CLI (Command Line Interface) for [Apache RocketMQ](https://rocketmq.apache.org/).
 
-`rmq` is a command interaction tool for RocketMQ users and OPS teams. It provides a modern, resource-oriented command model for daily operations, multi-environment workflows, troubleshooting, and automation.
+`rmq` is a modern CLI for RocketMQ users. It organizes common workflows around resources such as topics, consumer groups, messages, brokers, clusters, and nameservers.
 
-`rmq` focuses on daily operations and troubleshooting instead of exposing low-level admin APIs directly.
+It is designed for multi-environment operations and fast troubleshooting: contexts remove repeated connection flags, output stays quiet and predictable, and high-signal diagnostics are grouped into commands such as `group status`, `group lag`, and `message query`.
 
 ## Why rmq
 
