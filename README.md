@@ -93,19 +93,21 @@ Manage consumer groups and consume messages.
 | --- | --- |
 | `rmq group list` | List subscription groups found on brokers. |
 | `rmq group create -g GROUP` | Create a subscription group. |
+| `rmq group delete -g GROUP` | Delete a subscription group from all master brokers and remove the group's consumer offsets. |
 | `rmq group describe -g GROUP` | Show subscription group configuration. |
 | `rmq group connections -g GROUP` | Show group summary, active consumer instances and subscriptions. Also available as `clients` or `instances`. |
-| `rmq group status -g GROUP [-c CLIENT_ID] [-s]` | Show consumer running status, assigned queues, offsets, cache details and RT/TPS. `-s` includes the client stack dump. |
+| `rmq group status -g GROUP [-c CLIENT_ID] [-s]` | Show consumer running status, assigned queue state and RT/TPS. `-s` includes the client stack dump. |
 | `rmq group lag -g GROUP [-t TOPIC]` | Show consumer lag by queue. `LastTimestamp` is shown in local readable time. |
 | `rmq group consume -g GROUP -t TOPIC [--verbose]` | Start a push consumer and print consumed messages as JSON lines. |
 
-`group status` prints a `Consumers` summary first, then shared subscriptions, then one detailed block per consumer instance. Per-instance blocks include offsets, cached-message details and RT/TPS; timestamps are rendered in local readable time.
+`group status` prints a `Consumers` summary first, then shared subscriptions, then one detailed block per consumer instance. Per-instance blocks include queue offsets and cache details in one `Consumer Queues` table, followed by RT/TPS; timestamps are rendered in local readable time.
 
 Examples:
 
 ```shell
 rmq group list
 rmq group create -g GID_ORDER
+rmq group delete -g GID_ORDER
 rmq group status -g GID_ORDER
 rmq group status -g GID_ORDER -c 10.0.0.2@12345 -s
 rmq group connections -g GID_ORDER
@@ -120,13 +122,13 @@ Inspect messages.
 
 | Command | Description |
 | --- | --- |
-| `rmq message query -m MSG_ID` | Query a message by offset message ID. |
-| `rmq message status -m MSG_ID -g GROUP` | Check whether a consumer group's offset has passed the message. Status is inferred from offsets and can be `consumed`, `inflight`, or `unknown`. |
+| `rmq message query -t TOPIC -m MESSAGE_ID [-g GROUP]` | Query a message by MessageId. With `-g`, also shows `ConsumeStatus`, inferred from offsets as `consumed`, `not_consumed`, or `unknown`. |
 
 Example:
 
 ```shell
-rmq message query -m 0A00000100002A9F0000000000012345
+rmq message query -t TopicTest -m 0A00000100002A9F0000000000012345
+rmq message query -t TopicTest -m 0A00000100002A9F0000000000012345 -g GID_ORDER
 ```
 
 ### Broker
