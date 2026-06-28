@@ -12,6 +12,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/echooymxq/rmq-client-go/v2 v2.0.0-20260619030018-c7e18ea95874 h1:IBdZRDoH+cf6WdblPiZoAl0PnlQw4ArIGjbnHamCSTU=
 github.com/echooymxq/rmq-client-go/v2 v2.0.0-20260619030018-c7e18ea95874/go.mod h1:6I6vgxHR3hzrvn+6n/4mrhS+UTulzK/X9LB2Vk1U5gE=
+github.com/echooymxq/rmq-client-go/v2 v2.0.0-20260628091702-28b6ba59e777 h1:3ULw1q79JuWzfN9zO41Q4F1hWZvfrMNToC+9S+1D/6Y=
+github.com/echooymxq/rmq-client-go/v2 v2.0.0-20260628091702-28b6ba59e777/go.mod h1:6I6vgxHR3hzrvn+6n/4mrhS+UTulzK/X9LB2Vk1U5gE=
 github.com/emirpasic/gods v1.12.0/go.mod h1:YfzfFFoVP/catgzJb4IKIqXjX78Ha8FMSDh3ymbK86o=
 github.com/emirpasic/gods v1.18.1 h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=
 github.com/emirpasic/gods v1.18.1/go.mod h1:8tpGGwCnJ5H4r6BWwaV6OrWmMoPhUl5jm/FMNAnJvWQ=
