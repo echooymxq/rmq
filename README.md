@@ -94,15 +94,23 @@ Manage consumer groups and consume messages.
 | `rmq group list` | List subscription groups found on brokers. |
 | `rmq group create -g GROUP` | Create a subscription group. |
 | `rmq group describe -g GROUP` | Show subscription group configuration. |
-| `rmq group describe -g GROUP --showConnection` | Show active consumer client connections. |
+| `rmq group connections -g GROUP` | Show group summary, active consumer instances and subscriptions. Also available as `clients` or `instances`. |
+| `rmq group status -g GROUP [-c CLIENT_ID] [-s]` | Show consumer running status, assigned queues, offsets, cache details and RT/TPS. `-s` includes the client stack dump. |
+| `rmq group lag -g GROUP [-t TOPIC]` | Show consumer lag by queue. `LastTimestamp` is shown in local readable time. |
 | `rmq group consume -g GROUP -t TOPIC [--verbose]` | Start a push consumer and print consumed messages as JSON lines. |
+
+`group status` prints a `Consumers` summary first, then shared subscriptions, then one detailed block per consumer instance. Per-instance blocks include offsets, cached-message details and RT/TPS; timestamps are rendered in local readable time.
 
 Examples:
 
 ```shell
 rmq group list
 rmq group create -g GID_ORDER
-rmq group describe -g GID_ORDER --showConnection
+rmq group status -g GID_ORDER
+rmq group status -g GID_ORDER -c 10.0.0.2@12345 -s
+rmq group connections -g GID_ORDER
+rmq group lag -g GID_ORDER
+rmq group lag -g GID_ORDER -t OrderTopic
 rmq group consume -g GID_ORDER -t OrderTopic --verbose
 ```
 
@@ -113,6 +121,7 @@ Inspect messages.
 | Command | Description |
 | --- | --- |
 | `rmq message query -m MSG_ID` | Query a message by offset message ID. |
+| `rmq message status -m MSG_ID -g GROUP` | Check whether a consumer group's offset has passed the message. Status is inferred from offsets and can be `consumed`, `inflight`, or `unknown`. |
 
 Example:
 
@@ -136,6 +145,20 @@ Examples:
 rmq broker list
 rmq broker config -b 10.0.0.1:10911
 rmq broker config -b 10.0.0.1:10911 -k autoCreateTopicEnable -v false
+```
+
+### Cluster
+
+Inspect cluster topology.
+
+| Command | Description |
+| --- | --- |
+| `rmq cluster list` | List cluster broker groups, broker IDs, roles, and addresses. |
+
+Examples:
+
+```shell
+rmq cluster list
 ```
 
 ### NameServer

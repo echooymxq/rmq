@@ -3,23 +3,18 @@ package group
 import (
 	"context"
 	"fmt"
-	"github.com/apache/rocketmq-client-go/v2/admin"
-	"github.com/echooymxq/rmq/pkg/config"
-	"github.com/echooymxq/rmq/pkg/rocketmq"
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
-	"os"
-	"strconv"
 	"time"
 
+	"github.com/apache/rocketmq-client-go/v2/admin"
+	"github.com/spf13/cobra"
+
 	"github.com/echooymxq/rmq/pkg/cli"
+	"github.com/echooymxq/rmq/pkg/config"
+	"github.com/echooymxq/rmq/pkg/rocketmq"
 )
 
 func Describe(r *config.RocketMQConfig) *cobra.Command {
-	var (
-		group          string
-		showConnection bool
-	)
+	var group string
 
 	cmd := &cobra.Command{
 		Use: "describe",
@@ -29,22 +24,6 @@ func Describe(r *config.RocketMQConfig) *cobra.Command {
 				return err
 			}
 			defer rocketmq.Close(client)
-			// 查看消费组客户端连接
-			if showConnection {
-				consumerConnectionInfo, err := client.ExamineConsumerConnectionInfo(group)
-				table := tablewriter.NewWriter(os.Stdout)
-				table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
-				if err != nil {
-					return err
-				}
-				table.SetHeader([]string{"ClientId", "ClientAddr", "Language", "Version"})
-				table.SetAutoFormatHeaders(false)
-				for _, connection := range consumerConnectionInfo.ConnectionSet {
-					table.Append([]string{connection.ClientId, connection.ClientAddr, connection.Language, strconv.FormatInt(connection.Version, 10)})
-				}
-				table.Render()
-				return nil
-			}
 
 			// 查看消费组配置
 			groupConfig, err := GetSubscriptionGroupConfig(client, group)
@@ -60,7 +39,6 @@ func Describe(r *config.RocketMQConfig) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&group, "group", "g", "", "")
-	cmd.Flags().BoolVarP(&showConnection, "showConnection", "c", false, "")
 	cli.MarkFlagsRequired(cmd, "group")
 	return cmd
 }
