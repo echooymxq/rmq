@@ -146,9 +146,6 @@ func calculateConsumeLags(stats *admin.ConsumeStats) []consumeLag {
 	}
 
 	sort.Slice(lags, func(i, j int) bool {
-		if lags[i].Lag != lags[j].Lag {
-			return lags[i].Lag > lags[j].Lag
-		}
 		if lags[i].Topic != lags[j].Topic {
 			return lags[i].Topic < lags[j].Topic
 		}

@@ -4,6 +4,7 @@ import "github.com/apache/rocketmq-client-go/v2/primitive"
 
 type Message struct {
 	Topic          string            `json:"topic"`
+	BrokerName     string            `json:"brokerName,omitempty"`
 	QueueID        *int              `json:"queueId"`
 	QueueOffset    int64             `json:"queueOffset"`
 	MsgID          string            `json:"msgId"`
@@ -25,6 +26,7 @@ func NewMessage(msg *primitive.MessageExt, detailed bool) Message {
 	}
 	if msg.Queue != nil {
 		result.QueueID = &msg.Queue.QueueId
+		result.BrokerName = msg.Queue.BrokerName
 	}
 	if detailed {
 		result.Properties = msg.GetProperties()
