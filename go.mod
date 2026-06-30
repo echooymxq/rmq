@@ -9,7 +9,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace github.com/apache/rocketmq-client-go/v2 => github.com/echooymxq/rmq-client-go/v2 v2.0.0-20260630040721-0abc65373c9f
+replace github.com/apache/rocketmq-client-go/v2 => github.com/echooymxq/rmq-client-go/v2 v2.0.0-20260630113427-2a11acffdee0
 
 require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
